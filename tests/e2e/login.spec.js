@@ -1,8 +1,53 @@
 const { test } = require("@playwright/test");
+const { LoginPage } = require("../pages/LoginPaGe");
+const { MoviesPage } = require("../pages/MoviesPage");
+const { Toast } = require("../pages/Components");
+
+let loginPage;
+let moviesPage;
+let toast;
+
+test.beforeEach(({ page }) => {
+  loginPage = new LoginPage(page);
+  moviesPage = new MoviesPage(page);
+  toast = new Toast(page);
+});
 
 test("deve logar como administrador", async ({ page }) => {
-  await page.goto("http://localhost:3000/admin/login");
+  await loginPage.visit();
+  await loginPage.submit("admin@zombieplus.com", "pwd123");
+  await moviesPage.isLoggedIn();
+});
 
-  const loginForm = page.locator(".login-form");
-  await expect(loginForm).toBeVisible();
+test("não deve logar como senha incorreta", async ({ page }) => {
+  await loginPage.visit();
+  await loginPage.submit("admin@zombieplus.com", "abc123");
+
+  const message =
+    "Oops!Ocorreu um erro ao tentar efetuar o login. Por favor, verifique suas credenciais e tente novamente.";
+  await toast.haveText(message);
+});
+
+test("não deve logar quando o email é inválido", async ({ page }) => {
+  await loginPage.visit();
+  await loginPage.submit("www.papito.com.br", "abc123");
+  await toast.alertHaveText("Email incorreto");
+});
+
+test("não deve logar quando o email não é preenchido", async ({ page }) => {
+  await loginPage.visit();
+  await loginPage.submit("", "abc123");
+  await toast.alertHaveText("Campo obrigatório");
+});
+
+test("não deve logar quando a senha não é preenchida", async ({ page }) => {
+  await loginPage.visit();
+  await loginPage.submit("papito@gmail.com", "");
+  await toast.alertHaveText("Campo obrigatório");
+});
+
+test("não deve logar quando nenhum campo é preenchido", async ({ page }) => {
+  await loginPage.visit();
+  await loginPage.submit("", "");
+  await toast.alertHaveText(["Campo obrigatório", "Campo obrigatório"]);
 });
